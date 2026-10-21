@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import requests
 
 
@@ -28,6 +30,14 @@ def pobierz_plik(url, nazwa_pliku="latest.txt"):
     print(f"Zapisano plik: {nazwa_pliku}")
 
 
+def log_time(func):
+    """Dekorator wypisujący czas przed i po wywołaniu funkcji."""
+    def wrapper(*args, **kwargs):
+        print(f"Przed wywołaniem: {datetime.now()}")
+        result = func(*args, **kwargs)
+        print(f"Po wywołaniu: {datetime.now()}")
+        return result
+    return wrapper
 
 class ETLProcess:
     """ETL na generatorach."""
@@ -50,6 +60,7 @@ class ETLProcess:
             mean = round(total / len(numbers), 3)
             yield row[0], total, mean, missing
 
+    @log_time
     def load(self, results):
         """wyniki do dwóch plików CSV."""
         with open("values.csv", "w") as values_file:
