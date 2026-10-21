@@ -28,6 +28,44 @@ def pobierz_plik(url, nazwa_pliku="latest.txt"):
     print(f"Zapisano plik: {nazwa_pliku}")
 
 
+
+class ETLProcess:
+    """ETL na generatorach."""
+
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+    def extract(self):
+        """Wczytuje plik linijka po linijce."""
+        with open(self.file_name, "r") as file:
+            for line in file:
+                yield line.strip().split(",")
+
+    def transform(self, rows):
+        """Liczy sumę, średnią i indeksy brakujących wartości."""
+        for row in rows:
+            numbers = [float(value) for value in row[1:] if value != "-"]
+            missing = [i for i, value in enumerate(row) if value == "-"]
+            total = round(sum(numbers), 3)
+            mean = round(total / len(numbers), 3)
+            yield row[0], total, mean, missing
+
+    def load(self, results):
+        """wyniki do dwóch plików CSV."""
+        with open("values.csv", "w") as values_file:
+            with open("missing_values.csv", "w") as missing_file:
+                for number, total, mean, missing in results:
+                    missing_text = ",".join([str(i) for i in missing])
+                    values_file.write(f"{number},{total},{mean}\n")
+                    missing_file.write(f"{number},{missing_text}\n")
+
+    def run(self):
+        """Łączy etapy"""
+        self.load(self.transform(self.extract()))
+        print("Zapisano pliki: values.csv i missing_values.csv")
+
+
+
 def main():
     adresy = [
         "https://oleksandr-fedoruk.com/sggw/podyplomowe/file",
@@ -40,6 +78,11 @@ def main():
             pobierz_plik(url)
         except DownloadError as blad:
             print(f"Błąd: {blad}")
+
+    etl = ETLProcess("latest.txt")
+    etl.load(etl.transform(etl.extract()))
+    print("Zapisano pliki: values.csv i missing_values.csv")
+
 
 
 if __name__ == "__main__":
